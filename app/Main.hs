@@ -13,7 +13,4 @@ main :: IO ()
 main = do
     gen <- getStdGen
     let trainingset = take 1000 . randomFlow $ gen
-    let initProbDist = replicate 16 D.empty :: [ProbDist]
-    let probDists = updateProbDist trainingset $ initProbDist
-    putStrLn $ show . map D.toList $ probDists
-    putStrLn $ show . B.toListBE $ (0x62 * 0x100 + 0x42 :: Word16)
+    putStrLn . show . initGraphModel $ trainingset
