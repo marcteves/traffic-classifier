@@ -4,21 +4,24 @@ import qualified Data.Bits                        as B
 import qualified Data.Bits.Bitwise                as B
 import qualified Data.List as L
 import           Data.Word
+import           Data.Maybe
 import           FlowGenerator
 import qualified Numeric.Probability.Distribution as D
 
-type ProbDist = D.Distribution Float Outcomes
-type CondProbDist = D.Distribution Float (Outcomes, Outcomes)
-type Outcomes = [Bool]
+type ProbDist = D.Distribution Float [Outcome]
+type CondProbDist = D.Distribution Float ([Outcome], [Outcome])
+type Outcome = Bool
+
 data Node = Node
     { offsets :: [Int]
     , index :: Int
-    , values :: [Bool]
     , probDist :: ProbDist
     } deriving Show
 
 data Edge = Edge
     { edge :: (Int, Int)
+    , fstEntropy :: Float
+    , sndEntropy :: Float
     , condProbDist :: CondProbDist
     } deriving Show
 
@@ -35,9 +38,8 @@ initNode :: Int -> Node
 initNode int =
     let offsets = [int]
         index = int
-        values = []
         probDist = D.empty :: ProbDist
-    in  Node offsets index values probDist
+    in  Node offsets index probDist
 
 initGraphModel :: [Flow] -> Graph
 initGraphModel trainingset =
@@ -45,7 +47,9 @@ initGraphModel trainingset =
         numNodes = B.finiteBitSize . head $ trainingset
         initNodes = map initNode [1..numNodes]
         initGraph = newGraph initNodes []
-    in graphModel trainingset initGraph
+        {- Sort the training set now so functions can below can assume this -}
+        sortedTrainingSet = L.sort trainingset
+    in graphModel sortedTrainingSet initGraph
 
 -- iteratively refine graph model
 graphModel :: [Flow] -> Graph -> Graph
@@ -57,9 +61,7 @@ graphModel trainingset graph =
 
 nodeProbDist :: [Flow] -> Node -> Node
 nodeProbDist trainingset node =
-    let strip offsetList = map snd . filter (flip elem offsetList . fst) . zipWith (,) [1..]
-        probDists = foldr condInsert D.empty (map (strip (offsets node) . B.toListBE) trainingset)
-    in  node { probDist = probDists }
+    node { probDist = probDistFromFlows (offsets node) trainingset }
 
 nodeCondProbDist :: [Flow] -> [Node] -> Edge
 nodeCondProbDist trainingset nodes =
@@ -68,13 +70,24 @@ nodeCondProbDist trainingset nodes =
         nodeB = last nodes
         nodeAIndex = index nodeA
         nodeBIndex = index nodeB
-        valuesA = map (strip (offsets nodeA) . B.toListBE) trainingset
-        valuesB = map (strip (offsets nodeB) . B.toListBE) trainingset
-        condProbDists = foldr condProbInsert D.empty $ zipWith (,) valuesA valuesB
-    in Edge (nodeAIndex, nodeBIndex) condProbDists
+        offsetsA = offsets nodeA
+        offsetsB = offsets nodeB
+        condProbDists = condProbDistFromFlows offsetsA offsetsB trainingset
+    in Edge (nodeAIndex, nodeBIndex) 0 0 condProbDists
 
-condInsert :: Outcomes -> ProbDist -> ProbDist
-condInsert outcome distribution = D.insert (outcome, 1.0) distribution
+probDistFromFlows :: [Int] -> [Flow] -> ProbDist
+probDistFromFlows offsetList trainingset =
+    let indexedFlow = zipWith (,) [1..] . B.toListBE
+        filteredFlow = map snd . filter (flip elem offsetList . fst)
+        strippedTrainingSet = map (filteredFlow . indexedFlow) trainingset
+        groupedTrainingSet = L.group strippedTrainingSet
+    in  fromJust . D.normalize . D.fromList . zipWith (,) (map head groupedTrainingSet) $ (map (toEnum . length) groupedTrainingSet)
 
-condProbInsert :: (Outcomes, Outcomes) -> CondProbDist -> CondProbDist
-condProbInsert outcome distribution = D.insert (outcome, 1.0) distribution
+condProbDistFromFlows :: [Int] -> [Int] -> [Flow] -> CondProbDist
+condProbDistFromFlows offsetA offsetB trainingset =
+    let indexedFlow = zipWith (,) [1..] . B.toListBE
+        filteredFlow o = map snd . filter (flip elem o. fst)
+        strippedTrainingSetA = map (filteredFlow offsetA . indexedFlow) trainingset
+        strippedTrainingSetB = map (filteredFlow offsetB . indexedFlow) trainingset
+        groupedTrainingSet = L.group (zipWith (,) strippedTrainingSetA strippedTrainingSetB)
+    in  fromJust . D.normalize . D.fromList . zipWith (,) (map head groupedTrainingSet) $ (map (toEnum . length) groupedTrainingSet)
