@@ -25,11 +25,12 @@ printEdges ts int = do
     let edgesNow = edges graphmodel
     let edgeTuples = map edge edgesNow
     let igrs = map igr edgesNow
-    return edgeTuples
+    return (edgeTuples, trainingset)
 
 compareEdges a b = do
-    let numEdges = length b
-    putStrLn $ "Edges of graph:" ++ show b
+    let numEdges = length (fst b)
+    putStrLn $ "Training set:" ++ show (snd b)
+    putStrLn $ "Edges of graph:" ++ show (fst b)
     putStrLn $ "number of edges: " ++ show numEdges
-    putStrLn $ "Edges removed from past iteration:" ++ (show $ a L.\\ b)
+    putStrLn $ "Edges removed from past iteration:" ++ (show $ (fst a) L.\\ (fst b))
     return b
