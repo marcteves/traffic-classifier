@@ -12,7 +12,7 @@ classify :: Graph -> Flow -> Bool
 classify g@(Graph nodes edges) packet =
     let allNodes = checkAllNodes nodes packet
         allEdges = checkAllEdges g edges packet
-    in allNodes && allEdges
+    in True && allEdges
 
 checkAllNodes :: [Node] -> Flow -> Bool
 checkAllNodes (n:ns) packet =

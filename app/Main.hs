@@ -35,7 +35,6 @@ readAndClassify size (ts,graph) packet = do
     let newts = packet : ts
     let newgraph = initGraphModel newts size
     let edgeTuples = map edge $ edges newgraph
-    putStrLn $ show newgraph
     return (newts, newgraph)
 
 buildTrainingSet handle size xs = do
