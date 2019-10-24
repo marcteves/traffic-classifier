@@ -5,12 +5,12 @@ import qualified Data.Bits.Bitwise                as B
 import qualified Data.List                        as L
 import           Data.Maybe
 import           Data.Word
-import           FlowGenerator
 import qualified Numeric.Probability.Distribution as D
 
 type ProbDist = D.Distribution Float [Outcome]
 type CondProbDist = D.Distribution Float ([Outcome], [Outcome])
-type Outcome = Bool
+type Outcome = Word8
+type Flow = [Outcome]
 
 -- A node can represent multiple adjacent bit/byte offsets
 data Node = Node
@@ -36,10 +36,9 @@ data Graph = Graph
 newGraph :: [Node] -> [Edge] -> Graph
 newGraph nodes edges = Graph nodes edges
 
-initGraphModel :: [Flow] -> Graph
-initGraphModel trainingset =
-    let outcomes = map B.toListBE trainingset
-        numNodes = B.finiteBitSize . head $ trainingset
+initGraphModel :: [Flow] -> Int -> Graph
+initGraphModel trainingset numNodes =
+    let outcomes = trainingset
         initNodes = map (\int -> Node [int] int D.empty 0) [1..numNodes]
         initGraph = Graph initNodes []
         {- Sort the training set now so functions can below can assume this -}
@@ -129,7 +128,6 @@ condProbDistFromFlows offsetA offsetB trainingset =
     in  fromJust . D.normalize . D.fromList . zipWith (,) headOfGroups $ lengthOfGroups
 
 stripTrainingset offsetList trainingset =
-    let indexedFlow = zipWith (,) [1..] . B.toListBE
+    let indexedFlow = zipWith (,) [1..]
         filteredFlow = map snd . filter (flip elem offsetList. fst)
     in  map (filteredFlow . indexedFlow) trainingset
-
