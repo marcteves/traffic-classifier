@@ -1,7 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
-import           Classifier
 import           Control.Applicative
 import           Control.Monad
 import qualified Data.Bits                        as B
@@ -12,6 +11,7 @@ import qualified Data.List                        as L
 import           Data.Maybe
 import           Data.Word
 import qualified Numeric.Probability.Distribution as D
+import           ProGraph.Graph
 import           System.Environment
 import           System.Exit
 import qualified System.IO                        as IO

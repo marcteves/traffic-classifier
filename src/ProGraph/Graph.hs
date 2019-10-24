@@ -1,4 +1,4 @@
-module Classifier where
+module ProGraph.Graph where
 
 import qualified Data.Bits                        as B
 import qualified Data.Bits.Bitwise                as B
