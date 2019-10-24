@@ -1,23 +1,29 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Main where
 
 import           Classifier
+import           Control.Applicative
 import           Control.Monad
 import qualified Data.Bits                        as B
 import qualified Data.Bits.Bitwise                as B
-import           Data.Maybe
+import qualified Data.ByteString.Lazy.Char8       as B
 import qualified Data.List                        as L
+import           Data.Maybe
 import           Data.Word
 import           FlowGenerator
 import qualified Numeric.Probability.Distribution as D
+import           System.Environment
+import qualified System.IO                        as IO
 import           System.Random
 
 main :: IO ()
 main = do
-    gen <- getStdGen -- use same generator so that the first elements are shared
-    let trainingset = randomFlow $ gen
-    firstTuples <- printEdges trainingset 1
-    result <- forM [2..15] $ printEdges trainingset
-    foldM_ compareEdges firstTuples result
+    size <- (read . head) <$> getArgs :: IO Int
+    forever readAndClassify size
+
+readAndClassify size = do
+    packet <- B.hGet IO.stdin size
+    B.putStrLn $ B.append "Processing packet:" packet
 
 printEdges ts int = do
     let trainingset = take int ts

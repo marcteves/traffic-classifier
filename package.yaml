@@ -24,6 +24,7 @@ dependencies:
 - random
 - Dist
 - bitwise
+- bytestring
 
 library:
   source-dirs: src
