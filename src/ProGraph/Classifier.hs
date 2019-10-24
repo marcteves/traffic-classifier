@@ -14,6 +14,7 @@ classify g@(Graph nodes edges) packet =
         allEdges = checkAllEdges g edges packet
     in True && allEdges
 
+-- unused and unnecessary, remove in the future
 checkAllNodes :: [Node] -> Flow -> Bool
 checkAllNodes (n:ns) packet =
     let offsetList = offsets n
@@ -32,8 +33,8 @@ checkAllEdges g (e:es) packet =
         stripB = stripFlow oslB packet
         strippedPacket = (stripA, stripB)
         valids = map fst . D.toList . condProbDist $ e :: [(Flow, Flow)]
-        edgesMatched = foldr (matchEdge strippedPacket) True $ valids
+        edgesMatched = foldr (matchEdge strippedPacket) False $ valids
     in if edgesMatched == False then False else checkAllEdges g es packet
-    where matchEdge s v prev = if prev == False then False else v == s
+    where matchEdge s v prev = if prev == True then True else v == s
 
 checkAllEdges g [] packet     = True
