@@ -36,6 +36,15 @@ data Graph = Graph
 newGraph :: [Node] -> [Edge] -> Graph
 newGraph nodes edges = Graph nodes edges
 
+getNodePair :: Graph -> Edge -> Maybe (Node, Node)
+getNodePair g e = do
+    let ns = nodes g
+    nodeA <- L.find (matchIndex . fst . edge $ e) ns
+    nodeB <- L.find (matchIndex . snd . edge $ e) ns
+    return (nodeA, nodeB)
+    where matchIndex i Node{index=ni} = i == ni
+
+-- graph creation
 initGraphModel :: [Flow] -> Int -> Graph
 initGraphModel trainingset numNodes =
     let outcomes = trainingset
@@ -112,7 +121,7 @@ computeCondEntropy pd cpd =
 
 probDistFromFlows :: [Int] -> [Flow] -> ProbDist
 probDistFromFlows offsetList trainingset =
-    let strippedTrainingSet = stripTrainingset offsetList trainingset
+    let strippedTrainingSet = map (stripFlow offsetList) trainingset
         groupedTrainingSet = L.group strippedTrainingSet
         headOfGroups = map head groupedTrainingSet
         lengthOfGroups = map (toEnum . length) groupedTrainingSet
@@ -120,14 +129,15 @@ probDistFromFlows offsetList trainingset =
 
 condProbDistFromFlows :: [Int] -> [Int] -> [Flow] -> CondProbDist
 condProbDistFromFlows offsetA offsetB trainingset =
-    let strippedTrainingSetA = stripTrainingset offsetA trainingset
-        strippedTrainingSetB = stripTrainingset offsetB trainingset
+    let strippedTrainingSetA = map (stripFlow offsetA) trainingset
+        strippedTrainingSetB = map (stripFlow offsetB) trainingset
         groupedTrainingSet = L.group $ zipWith (,) strippedTrainingSetA strippedTrainingSetB
         headOfGroups = map head groupedTrainingSet
         lengthOfGroups = map (toEnum . length) groupedTrainingSet
     in  fromJust . D.normalize . D.fromList . zipWith (,) headOfGroups $ lengthOfGroups
 
-stripTrainingset offsetList trainingset =
+stripFlow :: [Int] -> Flow -> Flow
+stripFlow offsetList flow =
     let indexedFlow = zipWith (,) [1..]
         filteredFlow = map snd . filter (flip elem offsetList. fst)
-    in  map (filteredFlow . indexedFlow) trainingset
+    in  filteredFlow . indexedFlow $ flow

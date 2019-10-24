@@ -11,6 +11,7 @@ import qualified Data.List                        as L
 import           Data.Maybe
 import           Data.Word
 import qualified Numeric.Probability.Distribution as D
+import           ProGraph.Classifier
 import           ProGraph.Graph
 import           System.Environment
 import           System.Exit
@@ -22,7 +23,7 @@ main = do
     size <- (read . head) <$> getArgs :: IO Int
     filename <- last <$> getArgs
     handle <- IO.openFile filename IO.ReadMode
-    ts <- tail <$> buildTrainingSet handle size []
+    ts <- reverse . tail <$> buildTrainingSet handle size []
     putStrLn $ show ts
     let initGraph = initGraphModel [head ts] size
     foldM_ (readAndClassify size) ([head ts],initGraph) $ tail ts
@@ -30,6 +31,7 @@ main = do
 readAndClassify :: Int -> ([Flow],Graph) -> Flow -> IO ([Flow],Graph)
 readAndClassify size (ts,graph) packet = do
     BC.putStrLn $ B.append "Processing packet:" $ B.pack packet
+    putStrLn $ "Packet matched: " ++ (show $ classify graph packet)
     let newts = packet : ts
     let newgraph = initGraphModel newts size
     let edgeTuples = map edge $ edges newgraph
